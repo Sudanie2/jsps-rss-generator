@@ -5,9 +5,11 @@ on:
     branches:
       - jsps
   schedule:
-    # 毎日午前0時（UTC）に実行（必要に応じて変更）
     - cron: "0 0 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
