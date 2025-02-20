@@ -3,10 +3,10 @@ name: CI Workflow
 on:
   push:
     branches:
-      - main  # 必要に応じてブランチを変更
+      - jsps  # jsps ブランチへのプッシュ時に実行
   pull_request:
     branches:
-      - main
+      - jsps
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: main  # 最新の main ブランチを取得
+          ref: jsps  # jsps ブランチをチェックアウト
           fetch-depth: 0  # すべての履歴を取得
 
       - name: Check latest commit
