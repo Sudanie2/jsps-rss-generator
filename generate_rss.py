@@ -1,98 +1,68 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Flaskを利用して https://www.jsps.go.jp/include/news/inform_ja.json のJSONデータから
-RSSフィードを生成するアプリケーションです。
-
-各RSSアイテムでは、タイトル部分がハイパーリンクになっており、URLが正しく設定されます。
-
-使い方:
-1. 必要なライブラリをインストール:
-   pip install flask requests feedgen pytz
-2. このファイルを app.py として保存し、実行:
-   python app.py
-3. ブラウザで http://127.0.0.1:5000/json2rss にアクセスしてRSSフィードが表示されるか確認
-4. サーバーにデプロイ後、公開URLをFeedlyに登録してください。
-"""
-
-from flask import Flask, Response
 import requests
 from feedgen.feed import FeedGenerator
 from datetime import datetime
-import pytz
 
-app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return (
-        '<h1>JSPS inform_ja RSS Feed Generator</h1>'
-        '<p>/json2rss にアクセスするとRSSフィードが生成されます。</p>'
-    )
-
-@app.route('/json2rss')
-def json2rss():
+def generate_rss():
+    # JSONデータを取得するURL（日本学術振興会の新着情報）
     json_url = 'https://www.jsps.go.jp/include/news/inform_ja.json'
+    
     try:
-        resp = requests.get(json_url, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        # JSONを取得
+        response = requests.get(json_url)
+        response.raise_for_status()  # HTTPエラーがあれば例外を発生させる
     except Exception as e:
-        return Response(f'JSONの取得に失敗: {e}', status=500)
+        print(f"JSONの取得に失敗しました: {e}")
+        return
 
+    try:
+        data = response.json()  # JSONデータをパース（リスト形式を想定）
+    except Exception as e:
+        print(f"JSONのパースに失敗しました: {e}")
+        return
+
+    # RSSフィードの基本設定
     fg = FeedGenerator()
-    fg.title('JSPS inform_ja Feed')
+    fg.id(json_url)
+    fg.title('日本学術振興会 - 新着情報')
     fg.link(href='https://www.jsps.go.jp/', rel='alternate')
-    fg.description('Generated from inform_ja.json by Flask app')
+    fg.description('日本学術振興会の新着情報を自動生成したRSSフィードです。')
 
-    for entry in data:
+    # JSONの各項目からRSSエントリを追加
+    for item in data:
         fe = fg.add_entry()
-        fe.id(str(entry.get('client_news_id', '')))
-        fe.title(entry.get('title', 'No Title'))
-
-        # URLの設定（cms_fileフィールドがリストの場合、最初の要素を利用）
-        raw_link = entry.get('cms_file', '')
-        if isinstance(raw_link, list):
-            raw_link = raw_link[0] if raw_link else ''
-        if raw_link and raw_link.startswith('/'):
-            link = 'https://www.jsps.go.jp' + raw_link
-        else:
-            link = entry.get('message', '')
-        fe.link(href=link)
-
-        # 公開日時（timeフィールド）の設定
-        raw_time = entry.get('time')
-        if raw_time:
+        
+        # タイトル情報の取得。キーが存在しなければ "No Title" とする
+        title = item.get("title", "No Title")
+        fe.title(title)
+        
+        # リンク情報の取得。キーが "news_url" と仮定し、相対パスの場合は先頭に公式サイトのURLを付加
+        news_url = item.get("news_url", "")
+        if news_url and not news_url.startswith("http"):
+            news_url = "https://www.jsps.go.jp" + news_url
+        fe.link(href=news_url, rel='alternate')
+        
+        # 公開日の設定。キー "news_date" のフォーマットが "YYYY/MM/DD HH:MM:SS" を想定
+        news_date = item.get("news_date", "")
+        if news_date:
             try:
-                dt = datetime.strptime(raw_time, "%Y/%m/%d %H:%M:%S")
-                jst = pytz.timezone('Asia/Tokyo')
-                dt_jst = jst.localize(dt)
-                dt_utc = dt_jst.astimezone(pytz.utc)
-                fe.pubDate(dt_utc)
-            except ValueError:
-                pass
+                pub_date = datetime.strptime(news_date, "%Y/%m/%d %H:%M:%S")
+                fe.pubDate(pub_date)
+            except Exception as e:
+                print(f"日付の変換に失敗しました（{news_date}）：{e}")
+                # 日付が変換できなければスキップ
 
-        # 説明文の生成：tagsが辞書の場合は"name"キーを使い、なければ文字列化する
-        tags = entry.get('tags', [])
-        if isinstance(tags, list):
-            desc = ' / '.join(
-                tag.get('name', str(tag)) if isinstance(tag, dict) else str(tag)
-                for tag in tags
-            )
-        else:
-            desc = ''
-        message = entry.get('message', '')
-        if message:
-            desc += f"\nMessage: {message}"
-        fe.description(desc.strip())
-
-    rss_str = fg.rss_str(pretty=True)
-    response = Response(rss_str, mimetype='application/rss+xml; charset=UTF-8')
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
+    # RSSフィードを XML 形式に変換（整形済み）
+    try:
+        rss_str = fg.rss_str(pretty=True)
+        # rss.xml として書き出し（バイナリモードで書き込む）
+        with open("rss.xml", "wb") as f:
+            f.write(rss_str)
+        print("rss.xml を生成しました。")
+    except Exception as e:
+        print(f"RSSの生成または書き出しに失敗しました: {e}")
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    generate_rss()
