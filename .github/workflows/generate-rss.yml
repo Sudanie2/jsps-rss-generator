@@ -40,4 +40,4 @@ jobs:
         with:
           add: 'rss.xml'
           message: 'Update RSS feed [skip ci]'
-          branch: jsps
+          github_token: ${{ secrets.GITHUB_TOKEN }}
