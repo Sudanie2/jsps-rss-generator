@@ -38,7 +38,7 @@ def generate_rss():
         title = item.get("title", "No Title")
         fe.title(title)
         
-        # リンク情報の取得。キーが "news_url" と仮定し、相対パスの場合は先頭に公式サイトのURLを付加
+        # リンク情報の取得。キーが "news_url" と仮定し、相対パスの場合は公式サイトのURLを付加
         news_url = item.get("news_url", "")
         if news_url and not news_url.startswith("http"):
             news_url = "https://www.jsps.go.jp" + news_url
@@ -52,7 +52,6 @@ def generate_rss():
                 fe.pubDate(pub_date)
             except Exception as e:
                 print(f"日付の変換に失敗しました（{news_date}）：{e}")
-                # 日付が変換できなければスキップ
 
     # RSSフィードを XML 形式に変換（整形済み）
     try:
