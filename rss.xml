@@ -6,7 +6,7 @@
     <description>日本学術振興会の新着情報を自動生成したRSSフィードです。</description>
     <docs>http://www.rssboard.org/rss-specification</docs>
     <generator>python-feedgen</generator>
-    <lastBuildDate>Fri, 21 Feb 2025 02:53:56 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 22 Feb 2025 02:38:34 +0000</lastBuildDate>
     <item>
       <title>第13回(令和4(2022)年度)日本学術振興会育志賞の推薦要項を掲載しました。</title>
     </item>
@@ -3963,6 +3963,12 @@
     </item>
     <item>
       <title>令和７(2025)年度科研費（基盤研究（Ｓ））の審査結果の通知について</title>
+    </item>
+    <item>
+      <title>採択大学等の活動報告ページを追加しました</title>
+    </item>
+    <item>
+      <title>採択大学等の主催イベントページを更新しました</title>
     </item>
   </channel>
 </rss>
